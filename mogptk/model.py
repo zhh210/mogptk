@@ -449,7 +449,7 @@ class model:
 
             for q, param in enumerate(data['params']):
                 for key, val in param.items():
-                    self.set_parameter(q, key, val)
+                    self.set_parameter(q, key, val, force_positive=False)
 
     def train(
         self,

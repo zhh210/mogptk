@@ -813,6 +813,36 @@ class Data:
         idx = np.where(np.logical_and(self.X[:,0] >= start, self.X[:,0] <= end))
         self.mask[idx] = False
     
+    def unremove_range(self, start=None, end=None):
+        """
+        Un-Removes observations in the interval [start,end]. Start and end can be strings if a proper formatter is set for the independent variable.
+        
+        Args:
+            start (float, str, optional): Start of interval. Defaults to first value in observations.
+            end (float, str, optional): End of interval. Defaults to last value in observations.
+
+        Examples:
+            >>> data = mogptk.LoadFunction(lambda x: np.sin(3*x[:,0]), 0, 10, n=200, var=0.1, name='Sine wave')
+            >>> data.remove_range(3, 8)
+        
+            >>> data = mogptk.LoadCSV('gold.csv', 'Date', 'Price', format={'Date': mogptk.FormatDate})
+            >>> data.remove_range('2016-01-15', '2016-06-15')
+        """
+        if self.get_input_dims() != 1:
+            raise Exception("can only unremove ranges on one dimensional input data")
+
+        if start == None:
+            start = np.min(self.X[:,0])
+        else:
+            start = self.X_scales[0] * (self.formatters[0].parse(start) - self.X_offsets[0])
+        if end == None:
+            end = np.max(self.X[:,0])
+        else:
+            end = self.X_scales[0] * (self.formatters[0].parse(end) - self.X_offsets[0])
+
+        idx = np.where(np.logical_and(self.X[:,0] >= start, self.X[:,0] <= end))
+        self.mask[idx] = True
+
     def remove_relative_range(self, start=None, end=None):
         """
         Removes observations between start and end as a percentage of the number of observations. So '0' is the first observation, '0.5' is the middle observation, and '1' is the last observation.
