@@ -12,6 +12,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from IPython.display import display, HTML
 from tabulate import tabulate
+from plotly.colors import DEFAULT_PLOTLY_COLORS
 
 import logging
 logging.getLogger('tensorflow').propagate = False
@@ -624,7 +625,210 @@ class model:
             
         plt.suptitle(title, y=1.02, fontsize=20)
         plt.tight_layout()
+        
         return fig, axes
+
+    def plot_prediction_(self, grid=None, figsize=None, ylims=None, names=None, title='', filter_names=[]):
+
+        """
+        Plot training points, all data and prediction for training range for all channels.
+
+        Args:
+            grid (tuple) : Tuple with the 2 dimensions of the grid.
+            figsize(tuple): Figure size, default to (12, 8).
+            ylims(list): List of tuples with limits for Y axis for
+                each channel.
+            Names(list): List of the names of each title.
+            title(str): Title of the plot.
+            ret_fig(bool): If true returns the matplotlib figure, 
+                array of axis and dictionary with all the points used.
+            filter_names(list): LIst of names to predict and show.
+        """
+
+        #TODO: Add case for single output SM kernel.
+
+        # get data
+        x_train, y_train = self.dataset.get_train_data()
+        x_all, y_all = self.dataset.get_data()
+        x_pred, mu, lower, upper = self.dataset.get_prediction(self.name)
+
+        n_dim = min(self.dataset.get_output_dims(), len(filter_names))
+        if n_dim == 1:
+            grid = (1, 1)
+        elif grid is None:
+            grid = (int(np.ceil(n_dim/2)), 2)
+
+        if (grid[0] * grid[1]) < n_dim:
+            raise Exception('grid not big enough for all channels')
+
+        if figsize is None:
+            figsize = (12, 2.6 * grid[0])
+
+        fig, axes = plt.subplots(grid[0], grid[1], sharex=False, figsize=figsize)
+        axes = np.array(axes).reshape(-1)
+
+        colors = list(matplotlib.colors.TABLEAU_COLORS)
+        for j, fname in enumerate(filter_names):
+            # map j to i of x_pred
+            i = self.dataset.get_names().index(fname)
+            axes[j].fill_between(x_pred[i][:,0].reshape(-1),
+                lower[i],
+                upper[i],
+                label='95% c.i',
+                color=colors[i%len(colors)],
+                alpha=0.4,
+                zorder=1)
+            axes[j].plot(x_pred[i][:,0], mu[i], label='Post.Mean', c=colors[i%len(colors)], zorder=4, lw=1.8)
+            axes[j].plot(x_all[i][:,0], y_all[i], '--k', label='Test', lw=1, alpha=0.8, zorder=2)
+            axes[j].plot(x_train[i][:,0], y_train[i], '.k', label='Train', ms=11, mew=0.8, markeredgecolor='white', zorder=3)
+            
+            axes[j].xaxis.set_major_locator(plt.MaxNLocator(5))
+
+            formatter = matplotlib.ticker.FuncFormatter(lambda x,pos: self.dataset.get(i).formatters[0].format(x))
+            axes[j].xaxis.set_major_formatter(formatter)
+
+            xmin = min(x_all[i].min(), x_pred[i].min())
+            xmax = max(x_all[i].max(), x_pred[i].max())
+            axes[j].set_xlim(xmin - (xmax - xmin)*0.005, xmax + (xmax - xmin)*0.005)
+
+            # set channels name
+            if names is not None:
+                axes[j].set_title(names[i])
+            else:
+                channel_name = self.dataset.get_names()[i]
+                if channel_name != '':
+                    axes[j].set_title(channel_name)
+                elif n_dim == 1:
+                    pass
+                else:
+                    axes[j].set_title('Channel ' + str(i))
+
+            # set y lims
+            if ylims is not None:
+                axes[j].set_ylim(ylims[i]) 
+            from plotly.tools import mpl_to_plotly
+            axes[j] = mpl_to_plotly(fig, resize=True)
+            axes[j].update_traces(marker=dict(size=5),
+                  selector=dict(mode='markers'))
+        plt.suptitle(title, y=1.02, fontsize=20)
+        plt.tight_layout()
+        
+        return fig, axes
+
+
+    
+    def plot_prediction_plotly(self, grid=None, figsize=None, ylims=None, names=None, title='',filter_names=[], alpha=0.4):
+
+        """
+        Plot training points, all data and prediction for training range for all channels.
+
+        Args:
+            grid (tuple) : Tuple with the 2 dimensions of the grid.
+            figsize(tuple): Figure size, default to (12, 8).
+            ylims(list): List of tuples with limits for Y axis for
+                each channel.
+            Names(list): List of the names of each title.
+            title(str): Title of the plot.
+            ret_fig(bool): If true returns the matplotlib figure, 
+                array of axis and dictionary with all the points used.
+            filter_names(list): LIst of names to predict and show.
+        """
+
+        #TODO: Add case for single output SM kernel.
+        if not filter_names: filter_names = self.dataset.get_names()
+            
+        # get data
+        x_train, y_train = self.dataset.get_train_data()
+        x_all, y_all = self.dataset.get_data()
+        x_pred, mu, lower, upper = self.dataset.get_prediction(self.name)
+
+        n_dim = min(self.dataset.get_output_dims(), len(filter_names))
+        if n_dim == 1:
+            grid = (1, 1)
+        elif grid is None:
+            grid = (int(np.ceil(n_dim/2)), 2)
+
+        if (grid[0] * grid[1]) < n_dim:
+            raise Exception('grid not big enough for all channels')
+
+        if figsize is None:
+            figsize = (12, 2.6 * grid[0])
+
+        fig, axes = plt.subplots(grid[0], grid[1])
+        axes = np.array(axes).reshape(-1)
+
+        from plotly.subplots import make_subplots
+        import plotly.graph_objects as go
+
+        fig = make_subplots(rows=grid[0], cols=grid[1], subplot_titles=filter_names)
+
+        colors = [i[:-1] +',' + str(alpha) + ')' for i in DEFAULT_PLOTLY_COLORS]
+
+        for j, fname in enumerate(filter_names):
+            # map j to i of x_pred
+            i = self.dataset.get_names().index(fname)
+            num_row, num_col = j//2 + 1, j%2 + 1
+
+            # Plot confidence interval
+            color = colors[i%len(colors)]
+            def format_x(x_vec):
+                return [self.dataset.get(i).formatters[0].format(x) for x in x_vec]
+            
+            fig.add_trace(go.Scatter(x=format_x(x_pred[i][:,0]), y=lower[i],
+                fill=None,
+                mode='lines',
+                line_color=color,
+                line=dict(width=0),),
+                row=num_row, col=num_col
+            )
+            fig.add_trace(go.Scatter(
+                x=format_x(x_pred[i][:,0]),
+                y=upper[i],
+                fill='tonexty', # fill area between trace0 and trace1
+                mode='lines', line_color=color, line=dict(width=0)),
+                row=num_row, col=num_col)
+
+
+            # Plot predicted mean 
+            fig.add_trace(go.Scatter(x=format_x(x_pred[i][:,0]), y=mu[i], name='Mean',
+                                line=dict(color=color, width=1.5,
+                                    dash=None) # dash options include 'dash', 'dot', and 'dashdot'
+            ), row=num_row, col=num_col)
+            # Plot training
+            fig.add_trace(go.Scatter(x=format_x(x_train[i][:,0]), y=y_train[i], name='Train', mode='markers', 
+                                    marker=dict(size=3.5),
+                                line=dict(color='black', width=1.5,
+                                    dash='dot') # dash options include 'dash', 'dot', and 'dashdot'
+            ), row=num_row, col=num_col)
+            # Plot testing
+            fig.add_trace(go.Scatter(x=format_x(x_all[i][:,0]), y=y_all[i], name='Test',
+                                line=dict(color='black', width=1,
+                                    dash='dash') # dash options include 'dash', 'dot', and 'dashdot'
+            ), row=num_row, col=num_col)
+
+
+            xmin = min(x_all[i].min(), x_pred[i].min())
+            xmax = max(x_all[i].max(), x_pred[i].max())
+            xmin, xmax = xmin - (xmax - xmin)*0.005, xmax + (xmax - xmin)*0.005
+
+            # set channels name
+            if names is not None:
+                this_title = names[i]
+            else:
+                channel_name = self.dataset.get_names()[i]
+                if channel_name != '':
+                    this_title = channel_name
+                elif n_dim == 1:
+                    pass
+                else:
+                    this_title = 'Channel ' + str(i)
+
+            fig.update_xaxes(range=format_x([xmin, xmax]), row=num_row, col=num_col, showgrid=False)
+            fig.update_yaxes(showgrid=False)
+
+
+        _ = fig.update_layout(showlegend=False, title=title, autosize=True, width = figsize[0]*80, height=figsize[1]*90)
+        return fig
 
     def plot_gram_matrix(self, xmin=None, xmax=None, n_points=31, figsize=(10, 10), title=''):
         """
