@@ -306,7 +306,7 @@ class model:
 
         kern[key].assign(val)
 
-    def set_likelihood_parameter(self, key, val):
+    def set_likelihood_parameter(self, key, val, force_positive=True):
         """
         Sets a likelihood parameter with key the parameter name.
 
@@ -330,7 +330,7 @@ class model:
             raise Exception("parameter name '%s' must have shape %s and not %s" % (key, likelihood[key].shape, val.shape))
 
         for i, v in np.ndenumerate(val):
-            if v < gpflow.config.default_positive_minimum():
+            if force_positive and v < gpflow.config.default_positive_minimum():
                 val[i] = gpflow.config.default_positive_minimum()
 
         likelihood[key].assign(val)
