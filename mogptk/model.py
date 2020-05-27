@@ -268,7 +268,7 @@ class model:
     
         return kern[key].read_value().numpy()
 
-    def set_parameter(self, q, key, val):
+    def set_parameter(self, q, key, val, force_positive=True):
         """
         Sets a kernel parameter for component 'q' with key the parameter name.
 
@@ -301,7 +301,7 @@ class model:
             raise Exception("parameter name '%s' must have shape %s and not %s for q=%d" % (key, kern[key].shape, val.shape, q))
 
         for i, v in np.ndenumerate(val):
-            if v < gpflow.config.default_positive_minimum():
+            if force_positive and v < gpflow.config.default_positive_minimum():
                 val[i] = gpflow.config.default_positive_minimum()
 
         kern[key].assign(val)
