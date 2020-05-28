@@ -776,7 +776,7 @@ class model:
                 return [self.dataset.get(i).formatters[0].format(x) for x in x_vec]
             
             fig.add_trace(go.Scatter(x=format_x(x_pred[i][:,0]), y=lower[i],
-                fill=None,
+                fill=None, name= 'Predicted Lower',
                 mode='lines',
                 line_color=color,
                 line=dict(width=0),),
@@ -784,25 +784,25 @@ class model:
             )
             fig.add_trace(go.Scatter(
                 x=format_x(x_pred[i][:,0]),
-                y=upper[i],
+                y=upper[i], name = 'Predicted Upper',
                 fill='tonexty', # fill area between trace0 and trace1
                 mode='lines', line_color=color, line=dict(width=0)),
                 row=num_row, col=num_col)
 
 
             # Plot predicted mean 
-            fig.add_trace(go.Scatter(x=format_x(x_pred[i][:,0]), y=mu[i], name='Mean',
+            fig.add_trace(go.Scatter(x=format_x(x_pred[i][:,0]), y=mu[i], name='Predicted Mean',
                                 line=dict(color=color, width=1.5,
                                     dash=None) # dash options include 'dash', 'dot', and 'dashdot'
             ), row=num_row, col=num_col)
             # Plot training
-            fig.add_trace(go.Scatter(x=format_x(x_train[i][:,0]), y=y_train[i], name='Train', mode='markers', 
+            fig.add_trace(go.Scatter(x=format_x(x_train[i][:,0]), y=y_train[i], mode='markers', 
                                     marker=dict(size=3.5),
                                 line=dict(color='black', width=1.5,
                                     dash='dot') # dash options include 'dash', 'dot', and 'dashdot'
             ), row=num_row, col=num_col)
             # Plot testing
-            fig.add_trace(go.Scatter(x=format_x(x_all[i][:,0]), y=y_all[i], name='Test',
+            fig.add_trace(go.Scatter(x=format_x(x_all[i][:,0]), y=y_all[i], name='Ground Truth',
                                 line=dict(color='black', width=1,
                                     dash='dash') # dash options include 'dash', 'dot', and 'dashdot'
             ), row=num_row, col=num_col)
