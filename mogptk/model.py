@@ -752,7 +752,8 @@ class model:
             raise Exception('grid not big enough for all channels')
 
         if figsize is None:
-            figsize = (12, 2.6 * grid[0])
+            # (width, height)
+            figsize = (12, 2.6 * grid[0] if grid[0] > 1 else 3.5)
 
         fig, axes = plt.subplots(grid[0], grid[1])
         axes = np.array(axes).reshape(-1)
@@ -827,7 +828,7 @@ class model:
             fig.update_yaxes(showgrid=False)
 
 
-        _ = fig.update_layout(showlegend=False, title=title, autosize=True, width = figsize[0]*80, height=figsize[1]*90)
+        fig.update_layout(showlegend=False, title=title, autosize=True, width = figsize[0]*80, height=figsize[1]*90)
         return fig
 
     def plot_gram_matrix(self, xmin=None, xmax=None, n_points=31, figsize=(10, 10), title=''):
